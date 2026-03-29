@@ -97,6 +97,7 @@ if st.session_state.pets:
     with col2:
         priority = st.selectbox("Priority", ["high", "medium", "low"])
         frequency = st.selectbox("Frequency", ["daily", "weekly", "as-needed"])
+        task_time = st.text_input("Start time (HH:MM, optional)", value="", placeholder="e.g. 08:00")
 
     if st.button("Add task"):
         pet = st.session_state.pets[selected_pet]
@@ -106,6 +107,7 @@ if st.session_state.pets:
                 duration_minutes=int(duration),
                 priority=priority,
                 frequency=frequency,
+                time=task_time.strip(),
             )
         )
         st.success(f"Added '{task_title}' to {selected_pet}.")
@@ -135,19 +137,60 @@ if st.session_state.owner and st.session_state.pets:
     st.subheader("4. Generate Today's Schedule")
 
     if st.button("Generate schedule"):
-        scheduler = Scheduler(st.session_state.owner)
-        plans = scheduler.build_all_plans()
+        owner = st.session_state.owner
+        scheduler = Scheduler(owner)
 
+        # --- Conflict warnings (shown before plans so owner can act on them) ---
+        conflicts = scheduler.detect_conflicts()
+        if conflicts:
+            for w in conflicts:
+                if "multiple tasks scheduled at" in w:
+                    st.error(f"Time conflict: {w}")
+                else:
+                    st.warning(f"Budget warning: {w}")
+        else:
+            st.success("No scheduling conflicts detected.")
+
+        # --- Per-pet plans ---
+        plans = scheduler.build_all_plans()
         if not plans:
             st.warning("No pets found. Add at least one pet first.")
         else:
             for plan in plans:
-                st.markdown(f"### {plan.pet.name}'s Plan")
-                scheduled = plan.summary()
-                if scheduled:
-                    st.table(scheduled)
+                st.markdown(f"### {plan.pet.name}'s Plan ({plan.pet.species})")
+
+                # Scheduled tasks sorted by start time
+                sorted_scheduled = scheduler.sort_by_time(plan.scheduled_tasks)
+                if sorted_scheduled:
+                    st.success(
+                        f"Scheduled {len(sorted_scheduled)} task(s) — "
+                        f"{plan.total_duration()} / {owner.available_minutes} min used"
+                    )
+                    st.dataframe(
+                        [
+                            {
+                                "Time": t.time if t.time else "--",
+                                "Task": t.title,
+                                "Duration (min)": t.duration_minutes,
+                                "Priority": t.priority,
+                                "Frequency": t.frequency,
+                            }
+                            for t in sorted_scheduled
+                        ],
+                        use_container_width=True,
+                    )
                 else:
-                    st.warning("No tasks could be scheduled.")
+                    st.warning("No tasks could be scheduled for this pet.")
+
+                # Skipped tasks with reasons
+                if plan.skipped_tasks:
+                    st.warning(f"{len(plan.skipped_tasks)} task(s) could not be scheduled:")
+                    st.table(
+                        [
+                            {"Task": t.title, "Reason": t.reason_skipped or "reason unknown"}
+                            for t in plan.skipped_tasks
+                        ]
+                    )
 
                 with st.expander("Reasoning"):
                     st.text(plan.explain())
