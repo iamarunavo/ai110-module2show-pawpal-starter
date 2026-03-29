@@ -4,6 +4,12 @@ A Streamlit app that helps pet owners build a smart daily care schedule. Enter y
 
 ---
 
+## Demo
+
+<a href="pawpal_demo.png" target="_blank"><img src='pawpal_demo.png' title='PawPal App' width='' alt='PawPal App' class='center-block' /></a>
+
+---
+
 ## Features
 
 ### Priority-based scheduling
