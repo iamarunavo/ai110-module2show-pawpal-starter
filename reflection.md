@@ -4,8 +4,66 @@
 
 **a. Initial design**
 
-- Briefly describe your initial UML design.
-- What classes did you include, and what responsibilities did you assign to each?
+My initial design centers on three core user actions:
+
+- **Enter owner and pet info**: The user provides their name, pet name/type, and how much time they have available each day. This gives the scheduler the context it needs to make realistic plans.
+- **Add and edit care tasks**: The user builds a task list of pet care activities (walks, feeding, medications, enrichment, grooming, etc.), each tagged with an estimated duration and a priority level. Tasks can be added, updated, or removed at any time.
+- **Generate the daily plan**: The user triggers schedule generation. The app fits tasks into the available time window, ordered by priority, and displays the resulting plan with a brief explanation of why certain tasks were included or deferred.
+
+Classes I anticipated: `Pet`, `Owner`, `Task`, and `Scheduler`. `Scheduler` holds the core planning logic; the others are data containers.
+
+### UML Class Diagram
+
+```mermaid
+classDiagram
+    class Owner {
+        +String name
+        +int available_minutes
+        +dict preferences
+        +set_available_minutes(minutes)
+    }
+
+    class Pet {
+        +String name
+        +String species
+        +int age
+        +Owner owner
+        +get_species() String
+    }
+
+    class Task {
+        +String title
+        +int duration_minutes
+        +String priority
+        +bool completed
+        +is_high_priority() bool
+        +__repr__() String
+    }
+
+    class DayPlan {
+        +list scheduled_tasks
+        +list skipped_tasks
+        +date date
+        +total_duration() int
+        +explain() String
+        +summary() list
+    }
+
+    class Scheduler {
+        +Owner owner
+        +Pet pet
+        +build_plan(tasks) DayPlan
+        +_sort_by_priority(tasks) list
+        +_fits_in_time(task, remaining) bool
+    }
+
+    Owner "1" --> "1" Pet : owns
+    Pet "1" --> "1" Owner : belongs to
+    Scheduler --> Owner : uses
+    Scheduler --> Pet : uses
+    Scheduler --> DayPlan : produces
+    DayPlan --> Task : contains
+```
 
 **b. Design changes**
 
