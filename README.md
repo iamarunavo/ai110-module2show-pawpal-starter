@@ -45,6 +45,27 @@ The scheduler in `pawpal_system.py` goes beyond a simple priority list. Here is 
 | **Conflict detection** | `Scheduler.detect_conflicts()` | Returns warning strings (never crashes) for three conditions: high-priority tasks exceed available time, any pet's workload exceeds available time, and two tasks share the same start time slot. |
 | **Weekly deprioritization** | `Scheduler.build_plan()` | Weekly-frequency tasks are scheduled after all daily tasks, so daily care is never bumped by lower-urgency weekly chores. |
 
+## Testing PawPal+
+
+Run the full test suite with:
+
+```bash
+python -m pytest
+```
+
+**18 tests — all passing.**
+
+| Category | Tests | What is verified |
+|---|---|---|
+| **Sorting** | 4 | `sort_by_time()` returns chronological HH:MM order; untimed tasks land last; `build_plan()` schedules high priority first; shorter tasks come first within the same priority tier |
+| **Recurrence** | 4 | Daily task completion creates a new task due tomorrow (`timedelta(days=1)`); weekly creates one due in 7 days; `as-needed` returns `None`; pet task list grows by one after completion |
+| **Conflict detection** | 3 | Duplicate start times produce a warning; different times produce no warning; total high-priority time exceeding available minutes triggers a budget warning |
+| **Edge cases** | 4 | Pet with no tasks yields an empty plan; task skipped when time runs out; `filter_tasks` correctly isolates pending and completed tasks; weekly tasks always scheduled after daily tasks |
+| **Baseline** | 2 | `mark_complete()` flips status; `add_task()` grows the task list |
+
+**Confidence level: ★★★★☆**
+Core scheduling paths, sorting, recurrence, and conflict detection are fully covered. The remaining gap is integration-level testing (Streamlit UI + full multi-pet session flows), which would push confidence to 5 stars.
+
 ### Suggested workflow
 
 1. Read the scenario carefully and identify requirements and edge cases.
