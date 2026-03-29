@@ -4,13 +4,13 @@
 
 **a. Initial design**
 
-My initial design centers on three core user actions:
+Classes I chose and their responsibilities:
 
-- **Enter owner and pet info**: The user provides their name, pet name/type, and how much time they have available each day. This gives the scheduler the context it needs to make realistic plans.
-- **Add and edit care tasks**: The user builds a task list of pet care activities (walks, feeding, medications, enrichment, grooming, etc.), each tagged with an estimated duration and a priority level. Tasks can be added, updated, or removed at any time.
-- **Generate the daily plan**: The user triggers schedule generation. The app fits tasks into the available time window, ordered by priority, and displays the resulting plan with a brief explanation of why certain tasks were included or deferred.
-
-Classes I anticipated: `Pet`, `Owner`, `Task`, and `Scheduler`. `Scheduler` holds the core planning logic; the others are data containers.
+- **`Owner`** — holds the human side of the relationship: name, how many minutes are available today, and any scheduling preferences (e.g. prefers morning walks). It is the primary constraint source for the scheduler.
+- **`Pet`** — holds the animal's profile (name, species, age) and a reference to its owner. It carries context the scheduler may use to personalize the plan (e.g. a senior dog needs shorter walks).
+- **`Task`** — represents a single care activity. It stores what needs to happen (`title`), how long it takes (`duration_minutes`), how important it is (`priority`), whether it was done (`completed`), and if skipped, why (`reason_skipped`). It is the unit the scheduler operates on.
+- **`DayPlan`** — the output of a scheduling run. It holds the ordered list of scheduled tasks, the list of skipped tasks (with reasons), and references to the owner and pet so the plan can be personalized. It also provides `explain()` to surface reasoning.
+- **`Scheduler`** — the only class with real logic. It takes an `Owner` and `Pet` as context, receives a list of `Task` objects, sorts by priority, greedily fits tasks into the available time window, and returns a `DayPlan`.
 
 ### UML Class Diagram
 
@@ -67,8 +67,13 @@ classDiagram
 
 **b. Design changes**
 
-- Did your design change during implementation?
-- If yes, describe at least one change and why you made it.
+After reviewing the skeleton in `pawpal_system.py`, I made three changes based on gaps identified in the initial design:
+
+1. **Removed `Pet.get_species()` and `Owner.set_available_minutes()`** — The initial UML included getter/setter methods copied from object-oriented conventions in languages like Java. In Python, dataclass attributes are public by default, so these methods added no value and created unnecessary noise. Removing them keeps the classes idiomatic.
+
+2. **Added `owner` and `pet` references to `DayPlan`** — The original `DayPlan` had no reference to who the plan belonged to. This meant `explain()` could not say "Here is Mochi's plan for Jordan" or use the pet's species to personalize reasoning. Adding these references gives `DayPlan` the context it needs to produce meaningful output without needing to be passed extra arguments at call time.
+
+3. **Added `reason_skipped: str` to `Task`** — The original design stored skipped tasks in `DayPlan.skipped_tasks` but had no way to record *why* a task was skipped (not enough time remaining? lowest priority when time ran out?). Adding `reason_skipped` lets the `Scheduler` annotate each skipped task before placing it in the list, so `explain()` can report meaningful reasons rather than just listing omitted tasks.
 
 ---
 
