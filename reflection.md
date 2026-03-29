@@ -86,8 +86,15 @@ After reviewing the skeleton in `pawpal_system.py`, I made three changes based o
 
 **b. Tradeoffs**
 
-- Describe one tradeoff your scheduler makes.
-- Why is that tradeoff reasonable for this scenario?
+**Exact time-match vs. duration-overlap detection**
+
+The scheduler's conflict detection (`detect_conflicts`) only flags tasks that share the exact same `time` string (e.g., both at `"08:00"`). It does *not* check whether a 30-minute task starting at `07:45` overlaps with a 10-minute task starting at `08:00`.
+
+This tradeoff is reasonable for this scenario because: (1) exact-match detection is O(n) and requires no interval math; (2) for a home pet-care schedule, tasks are typically short and spaced deliberately — the owner sets the times themselves; (3) a warning-not-crash approach means false negatives (missed overlaps) are acceptable, while false positives (phantom conflicts from interval logic bugs) would be more disruptive. Extending to full interval overlap detection is a clear next step if task durations grow or time windows become tighter.
+
+**AI suggestion considered — `defaultdict` vs. `setdefault`**
+
+When evaluating the time-slot bucketing code in `detect_conflicts()`, a more Pythonic version using `collections.defaultdict` was considered. It saves two lines and removes the explicit `setdefault` call. The current `dict.setdefault` version was kept because it requires no extra import, is readable to anyone who knows standard Python dicts. When readability and a simpler import footprint tie with a minor style gain, readability wins.
 
 ---
 
